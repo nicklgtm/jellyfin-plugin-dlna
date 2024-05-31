@@ -1006,11 +1006,6 @@ public class Device : IDisposable
             return url;
         }
 
-        if (!url.Contains('/', StringComparison.Ordinal))
-        {
-            url = "/dmr/" + url;
-        }
-
         if (!url.StartsWith('/'))
         {
             url = "/" + url;
