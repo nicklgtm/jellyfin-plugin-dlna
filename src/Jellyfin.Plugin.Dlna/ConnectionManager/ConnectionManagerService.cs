@@ -1,5 +1,3 @@
-#pragma warning disable CS1591
-
 using System.Net.Http;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Dlna.Service;
@@ -25,7 +23,7 @@ public class ConnectionManagerService : BaseService, IConnectionManager
         IDlnaManager dlna,
         ILogger<ConnectionManagerService> logger,
         IHttpClientFactory httpClientFactory)
-        : base(logger, httpClientFactory)
+        : base(logger)
     {
         _dlna = dlna;
     }

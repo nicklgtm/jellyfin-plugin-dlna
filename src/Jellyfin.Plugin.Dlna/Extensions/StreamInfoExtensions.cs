@@ -7,8 +7,18 @@ using MediaBrowser.Model.Dto;
 
 namespace Jellyfin.Plugin.Dlna.Extensions;
 
+/// <summary>
+/// Extensions for <see cref="StreamInfo"/>.
+/// </summary>
 public static class StreamInfoExtensions
 {
+    /// <summary>
+    /// Get the DLNA URL.
+    /// </summary>
+    /// <param name="streamInfo">The <see cref="StreamInfo"/>.</param>
+    /// <param name="baseUrl">The base URL.</param>
+    /// <param name="accessToken">The access token.</param>
+    /// <returns>The DLNA URL.</returns>
     public static string ToDlnaUrl(this StreamInfo streamInfo, string baseUrl, string? accessToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(baseUrl);
@@ -77,7 +87,7 @@ public static class StreamInfoExtensions
         return string.Format(CultureInfo.InvariantCulture, "{0}/dlna/videos/{1}/stream{2}?{3}", baseUrl, itemId, extension, queryString);
     }
 
-    private static IEnumerable<NameValuePair> BuildParams(StreamInfo item, string? accessToken)
+    private static List<NameValuePair> BuildParams(StreamInfo item, string? accessToken)
     {
         var list = new List<NameValuePair>();
 
@@ -204,5 +214,16 @@ public static class StreamInfoExtensions
         }
 
         return list;
+    }
+
+    /// <summary>
+    /// Get the stream count for the stream info.
+    /// </summary>
+    /// <param name="streamInfo"></param>
+    /// <returns></returns>
+    public static int GetStreamCount(this StreamInfo streamInfo)
+    {
+        var streamCount = streamInfo.MediaSource?.MediaStreams.Count ?? 1;
+        return Math.Min(streamCount, streamInfo.IsDirectStream ? int.MaxValue : 1);
     }
 }

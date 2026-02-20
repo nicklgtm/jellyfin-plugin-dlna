@@ -1,11 +1,10 @@
-#pragma warning disable CS1591
-
 using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Jellyfin.Data.Entities;
-using Jellyfin.Data.Enums;
+using Jellyfin.Data;
+using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.Dlna.Model;
 using Jellyfin.Plugin.Dlna.Service;
 using MediaBrowser.Controller.Drawing;
@@ -15,7 +14,6 @@ using MediaBrowser.Controller.TV;
 using MediaBrowser.Model.Dlna;
 using MediaBrowser.Model.Globalization;
 using Microsoft.Extensions.Logging;
-using IDlnaManager = Jellyfin.Plugin.Dlna.Model.IDlnaManager;
 
 namespace Jellyfin.Plugin.Dlna.ContentDirectory;
 
@@ -63,7 +61,7 @@ public class ContentDirectoryService : BaseService, IContentDirectory
         IUserViewManager userViewManager,
         IMediaEncoder mediaEncoder,
         ITVSeriesManager tvSeriesManager)
-        : base(logger, httpClient)
+        : base(logger)
     {
         _dlna = dlna;
         _userDataManager = userDataManager;
@@ -103,7 +101,7 @@ public class ContentDirectoryService : BaseService, IContentDirectory
 
         var profile = _dlna.GetProfile(request.Headers) ?? _dlna.GetDefaultProfile();
 
-        var serverAddress = request.RequestedUrl.Substring(0, request.RequestedUrl.IndexOf("/dlna", StringComparison.OrdinalIgnoreCase));
+        var serverAddress = request.RequestedUrl[..request.RequestedUrl.IndexOf("/dlna", StringComparison.OrdinalIgnoreCase)];
 
         var user = GetUser(profile);
 

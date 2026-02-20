@@ -1,3 +1,5 @@
+#pragma warning disable CA1819 // Properties should not return arrays
+
 using System;
 using System.ComponentModel;
 using System.Linq;
@@ -10,6 +12,9 @@ using MediaBrowser.Model.MediaInfo;
 
 namespace Jellyfin.Plugin.Dlna.Model;
 
+/// <summary>
+/// Defines the <see cref="DlnaDeviceProfile" />.
+/// </summary>
 [XmlRoot("Profile")]
 public class DlnaDeviceProfile : DeviceProfile
 {
@@ -154,18 +159,18 @@ public class DlnaDeviceProfile : DeviceProfile
     /// <summary>
     /// Gets or sets the XmlRootAttributes.
     /// </summary>
-    public XmlAttribute[] XmlRootAttributes { get; set; } = Array.Empty<XmlAttribute>();
+    public XmlAttribute[] XmlRootAttributes { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the ResponseProfiles.
     /// </summary>
-    public ResponseProfile[] ResponseProfiles { get; set; } = Array.Empty<ResponseProfile>();
+    public ResponseProfile[] ResponseProfiles { get; set; } = [];
 
     /// <summary>
-    /// The GetSupportedMediaTypes.
+    /// The supported media types.
     /// </summary>
     /// <returns>The .</returns>
-    public MediaType[] GetSupportedMediaTypes()
+    public MediaType[] FetchSupportedMediaTypes()
     {
         return ContainerHelper.Split(SupportedMediaTypes)
             .Select(m => Enum.TryParse<MediaType>(m, out var parsed) ? parsed : MediaType.Unknown)
@@ -186,7 +191,7 @@ public class DlnaDeviceProfile : DeviceProfile
         return TranscodingProfiles
             .Where(i => i.Type == DlnaProfileType.Audio)
             .Where(i => string.Equals(container, i.Container, StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault(i => ContainerHelper.Split(i.AudioCodec).Contains(audioCodec ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(i => ContainerHelper.ContainsContainer(i.AudioCodec, audioCodec));
     }
 
     /// <summary>
@@ -203,7 +208,7 @@ public class DlnaDeviceProfile : DeviceProfile
         return TranscodingProfiles
             .Where(i => i.Type == DlnaProfileType.Video)
             .Where(i => string.Equals(container, i.Container, StringComparison.OrdinalIgnoreCase))
-            .Where(i => ContainerHelper.Split(i.AudioCodec).Contains(audioCodec ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            .Where(i => ContainerHelper.ContainsContainer(i.AudioCodec, audioCodec))
             .FirstOrDefault(i => string.Equals(videoCodec, i.VideoCodec, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -265,8 +270,13 @@ public class DlnaDeviceProfile : DeviceProfile
     /// <param name="width">The width.</param>
     /// <param name="height">The height.</param>
     /// <returns>The <see cref="ResponseProfile"/>.</returns>
-    public ResponseProfile? GetImageMediaProfile(string container, int? width, int? height)
+    public ResponseProfile? GetImageMediaProfile(string? container, int? width, int? height)
     {
+        if (container is null)
+        {
+            return null;
+        }
+
         foreach (var i in ResponseProfiles)
         {
             if (i.Type != DlnaProfileType.Photo)
@@ -321,6 +331,7 @@ public class DlnaDeviceProfile : DeviceProfile
     /// <param name="refFrames">The ref frames.</param>
     /// <param name="numVideoStreams">The number of video streams.</param>
     /// <param name="numAudioStreams">The number of audio streams.</param>
+    /// <param name="numStreams">The number of streams.</param>
     /// <param name="videoCodecTag">The video Codec tag.</param>
     /// <param name="isAvc">True if Avc.</param>
     /// <returns>The <see cref="ResponseProfile"/>.</returns>
@@ -343,6 +354,7 @@ public class DlnaDeviceProfile : DeviceProfile
         int? refFrames,
         int? numVideoStreams,
         int? numAudioStreams,
+        int numStreams,
         string? videoCodecTag,
         bool? isAvc)
     {
@@ -373,7 +385,26 @@ public class DlnaDeviceProfile : DeviceProfile
             var anyOff = false;
             foreach (ProfileCondition c in i.Conditions)
             {
-                if (!ConditionProcessor.IsVideoConditionSatisfied(GetModelProfileCondition(c), width, height, bitDepth, videoBitrate, videoProfile, videoRangeType, videoLevel, videoFramerate, packetLength, timestamp, isAnamorphic, isInterlaced, refFrames, numVideoStreams, numAudioStreams, videoCodecTag, isAvc))
+                if (!ConditionProcessor.IsVideoConditionSatisfied(
+                        GetModelProfileCondition(c),
+                        width,
+                        height,
+                        bitDepth,
+                        videoBitrate,
+                        videoProfile,
+                        videoRangeType,
+                        videoLevel,
+                        videoFramerate,
+                        packetLength,
+                        timestamp,
+                        isAnamorphic,
+                        isInterlaced,
+                        refFrames,
+                        numStreams,
+                        numVideoStreams,
+                        numAudioStreams,
+                        videoCodecTag,
+                        isAvc))
                 {
                     anyOff = true;
                     break;

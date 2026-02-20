@@ -1,9 +1,9 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using System.Web;
 using Jellyfin.Extensions;
 using Jellyfin.Plugin.Dlna.Model;
 using MediaBrowser.Common.Api;
@@ -22,7 +22,7 @@ namespace Jellyfin.Plugin.Dlna.Api;
 [Authorize(Policy = Policies.AnonymousLanAccessPolicy)]
 public class DlnaServerController : ControllerBase
 {
-    private static readonly string[] _relativePathUserAgents = { "Bigscreen" };
+    private static readonly string[] _relativePathUserAgents = ["Bigscreen"];
 
     private readonly IDlnaManager _dlnaManager;
     private readonly IContentDirectory _contentDirectory;
@@ -66,17 +66,17 @@ public class DlnaServerController : ControllerBase
         string? userAgent = Request.Headers.UserAgent;
         if (userAgent is not null)
         {
-            var firstIndexOfSlash = userAgent.IndexOf('/');
+            var firstIndexOfSlash = userAgent.IndexOf('/', StringComparison.OrdinalIgnoreCase);
             if (firstIndexOfSlash > 0)
             {
-                userAgent = userAgent.Substring(0, firstIndexOfSlash);
+                userAgent = userAgent[..firstIndexOfSlash];
             }
 
             useRelativePath = _relativePathUserAgents.Contains(userAgent, StringComparison.Ordinal);
         }
 
         var url = useRelativePath ? GetRelativePath() : GetAbsoluteUri();
-        var serverAddress = url.Substring(0, url.IndexOf("/dlna/", StringComparison.OrdinalIgnoreCase));
+        var serverAddress = url[..url.IndexOf("/dlna/", StringComparison.OrdinalIgnoreCase)];
         var xml = _dlnaManager.GetServerDescriptionXml(Request.Headers, serverId, serverAddress);
         return Ok(xml);
     }
@@ -94,7 +94,6 @@ public class DlnaServerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     [Produces(MediaTypeNames.Text.Xml)]
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
     public ActionResult<string> GetContentDirectory([FromRoute, Required] string serverId)
     {
         return Ok(_contentDirectory.GetServiceXml());
@@ -113,7 +112,6 @@ public class DlnaServerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     [Produces(MediaTypeNames.Text.Xml)]
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
     public ActionResult<string> GetMediaReceiverRegistrar([FromRoute, Required] string serverId)
     {
         return Ok(_mediaReceiverRegistrar.GetServiceXml());
@@ -132,7 +130,6 @@ public class DlnaServerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     [Produces(MediaTypeNames.Text.Xml)]
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
     public ActionResult<string> GetConnectionManager([FromRoute, Required] string serverId)
     {
         return Ok(_connectionManager.GetServiceXml());
@@ -195,14 +192,13 @@ public class DlnaServerController : ControllerBase
     /// <returns>Event subscription response.</returns>
     [HttpSubscribe("{serverId}/MediaReceiverRegistrar/Events")]
     [HttpUnsubscribe("{serverId}/MediaReceiverRegistrar/Events")]
-    [ApiExplorerSettings(IgnoreApi = true)] // Ignore in openapi docs
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
-    [Produces(MediaTypeNames.Text.Xml)]
-    public ActionResult<EventSubscriptionResponse> ProcessMediaReceiverRegistrarEventRequest(string serverId)
+    public ActionResult ProcessMediaReceiverRegistrarEventRequest(string serverId)
     {
-        return ProcessEventRequest(_mediaReceiverRegistrar);
+        SetResponse(ProcessEventRequest(_mediaReceiverRegistrar));
+        return new EmptyResult();
     }
 
     /// <summary>
@@ -214,14 +210,13 @@ public class DlnaServerController : ControllerBase
     /// <returns>Event subscription response.</returns>
     [HttpSubscribe("{serverId}/ContentDirectory/Events")]
     [HttpUnsubscribe("{serverId}/ContentDirectory/Events")]
-    [ApiExplorerSettings(IgnoreApi = true)] // Ignore in openapi docs
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
-    [Produces(MediaTypeNames.Text.Xml)]
-    public ActionResult<EventSubscriptionResponse> ProcessContentDirectoryEventRequest(string serverId)
+    public ActionResult ProcessContentDirectoryEventRequest(string serverId)
     {
-        return ProcessEventRequest(_contentDirectory);
+        SetResponse(ProcessEventRequest(_contentDirectory));
+        return new EmptyResult();
     }
 
     /// <summary>
@@ -233,14 +228,13 @@ public class DlnaServerController : ControllerBase
     /// <returns>Event subscription response.</returns>
     [HttpSubscribe("{serverId}/ConnectionManager/Events")]
     [HttpUnsubscribe("{serverId}/ConnectionManager/Events")]
-    [ApiExplorerSettings(IgnoreApi = true)] // Ignore in openapi docs
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
-    [Produces(MediaTypeNames.Text.Xml)]
-    public ActionResult<EventSubscriptionResponse> ProcessConnectionManagerEventRequest(string serverId)
+    public ActionResult ProcessConnectionManagerEventRequest(string serverId)
     {
-        return ProcessEventRequest(_connectionManager);
+        SetResponse(ProcessEventRequest(_connectionManager));
+        return new EmptyResult();
     }
 
     /// <summary>
@@ -253,7 +247,6 @@ public class DlnaServerController : ControllerBase
     /// <response code="503">DLNA is disabled.</response>
     /// <returns>Icon stream.</returns>
     [HttpGet("{serverId}/icons/{fileName}")]
-    [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "serverId", Justification = "Required for DLNA")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -332,5 +325,15 @@ public class DlnaServerController : ControllerBase
         }
 
         return dlnaEventManager.CancelEventSubscription(subscriptionId);
+    }
+
+    private void SetResponse(EventSubscriptionResponse eventSubscriptionResponse)
+    {
+        Response.Headers.Server = HttpUtility.UrlEncode(_dlnaManager.GetServerName());
+        Response.ContentLength = 0;
+        foreach (var header in eventSubscriptionResponse.Headers)
+        {
+            Response.Headers[header.Key] = HttpUtility.UrlEncode(header.Value);
+        }
     }
 }

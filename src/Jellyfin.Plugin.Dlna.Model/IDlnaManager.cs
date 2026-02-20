@@ -1,13 +1,12 @@
-#pragma warning disable CS1591
-
 using System.Collections.Generic;
 using System.IO;
-using MediaBrowser.Controller.Drawing;
-using MediaBrowser.Model.Dlna;
 using Microsoft.AspNetCore.Http;
 
 namespace Jellyfin.Plugin.Dlna.Model;
 
+/// <summary>
+/// Defines the <see cref="IDlnaManager" /> interface.
+/// </summary>
 public interface IDlnaManager
 {
     /// <summary>
@@ -77,4 +76,10 @@ public interface IDlnaManager
     /// <param name="filename">The filename.</param>
     /// <returns>DlnaIconResponse.</returns>
     Stream? GetIcon(string filename);
+
+    /// <summary>
+    /// Gets the server name.
+    /// </summary>
+    /// <returns>string</returns>
+    string GetServerName();
 }
